@@ -59,7 +59,8 @@ else
     esac
     if [ -n "$XRAY_ARCH" ]; then
         echo "Installing Xray for $ARCH..."
-        XRAY_URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-${XRAY_ARCH}.zip"
+        XRAY_VERSION="25.1.30"
+        XRAY_URL="https://github.com/XTLS/Xray-core/releases/download/v${XRAY_VERSION}/Xray-linux-${XRAY_ARCH}.zip"
         curl $CURL_FLAGS "$XRAY_URL" -o /tmp/xray.zip || { echo "Warning: Xray download failed, skipping"; XRAY_ARCH=""; }
         if [ -n "$XRAY_ARCH" ] && [ -f /tmp/xray.zip ]; then
             unzip -qo /tmp/xray.zip -d /tmp/xray 2>/dev/null
