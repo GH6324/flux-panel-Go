@@ -17,6 +17,10 @@ func OkMsg() R {
 	return R{Code: 0, Msg: "操作成功", Ts: time.Now().UnixMilli()}
 }
 
+func Warn(msg string, data interface{}) R {
+	return R{Code: 0, Msg: msg, Ts: time.Now().UnixMilli(), Data: data}
+}
+
 func Err(msg string) R {
 	return R{Code: -1, Msg: msg, Ts: time.Now().UnixMilli()}
 }

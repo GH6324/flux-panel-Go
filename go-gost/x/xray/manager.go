@@ -174,6 +174,27 @@ func (m *XrayManager) GetBinaryPath() string {
 	return m.binaryPath
 }
 
+// EnsureBinary checks if the Xray binary exists. If a persisted copy exists
+// in the config directory, it restores it. Returns an error if not found.
+func (m *XrayManager) EnsureBinary() error {
+	if _, err := exec.LookPath(m.binaryPath); err == nil {
+		return nil // binary found in PATH
+	}
+	// Check the persisted binary in config directory (saved by SwitchVersion)
+	persistDir, _ := filepath.Abs(filepath.Dir(m.configPath))
+	persistPath := filepath.Join(persistDir, "xray")
+	if _, err := os.Stat(persistPath); err == nil {
+		// Copy persisted binary to /usr/local/bin/xray
+		if copyErr := copyFile(persistPath, "/usr/local/bin/xray"); copyErr == nil {
+			os.Chmod("/usr/local/bin/xray", 0755)
+			fmt.Printf("✅ Restored Xray binary from %s\n", persistPath)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Xray 未安装，请先在节点管理中切换 Xray 版本以安装")
+}
+
 // SwitchVersion downloads and replaces the Xray binary with the specified version.
 // This method is designed to be called in a goroutine (async).
 func (m *XrayManager) SwitchVersion(version string) error {
@@ -547,9 +568,19 @@ func (m *XrayManager) HotAddInbound(cfg InboundConfig) error {
 	}
 
 	if !m.IsRunning() {
-		// Xray not running — write inbound to config and start
-		fmt.Printf("ℹ️ Xray not running, writing config and starting...\n")
-		// Ensure base config file exists before updating
+		// Xray not running — ensure binary exists first
+		fmt.Printf("ℹ️ Xray not running, ensuring binary...\n")
+		if err := m.EnsureBinary(); err != nil {
+			return fmt.Errorf("failed to ensure Xray binary: %v", err)
+		}
+
+		if m.IsRunning() {
+			// EnsureBinary → SwitchVersion started Xray with base config;
+			// use hot-add via gRPC to add the inbound
+			goto hotAdd
+		}
+
+		// Binary exists but Xray not running — write inbound to config and start
 		m.ensureBaseConfig()
 		m.updateConfigFile(func(config map[string]interface{}) {
 			inbounds, _ := config["inbounds"].([]interface{})
@@ -567,6 +598,8 @@ func (m *XrayManager) HotAddInbound(cfg InboundConfig) error {
 		fmt.Printf("✅ Xray started with inbound: %s\n", cfg.Tag)
 		return nil
 	}
+
+hotAdd:
 
 	configJSON, err := json.Marshal(inboundObj)
 	if err != nil {
