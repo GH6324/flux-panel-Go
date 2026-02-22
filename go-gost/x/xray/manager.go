@@ -517,12 +517,10 @@ func (m *XrayManager) writeConfig(config map[string]interface{}) error {
 
 // HotAddInbound adds an inbound to the running Xray instance via gRPC API
 // and updates the config file for persistence (no restart needed).
+// If Xray is not running (e.g. first inbound on a new node), it writes the
+// config and starts Xray automatically.
 func (m *XrayManager) HotAddInbound(cfg InboundConfig) error {
-	if !m.IsRunning() {
-		return fmt.Errorf("Xray is not running")
-	}
-
-	// Build the inbound JSON for the gRPC API
+	// Build the inbound JSON
 	inboundObj := map[string]interface{}{
 		"listen":   cfg.Listen,
 		"port":     cfg.Port,
@@ -546,6 +544,28 @@ func (m *XrayManager) HotAddInbound(cfg InboundConfig) error {
 		if err := json.Unmarshal([]byte(cfg.SniffingJSON), &sniffing); err == nil {
 			inboundObj["sniffing"] = sniffing
 		}
+	}
+
+	if !m.IsRunning() {
+		// Xray not running — write inbound to config and start
+		fmt.Printf("ℹ️ Xray not running, writing config and starting...\n")
+		// Ensure base config file exists before updating
+		m.ensureBaseConfig()
+		m.updateConfigFile(func(config map[string]interface{}) {
+			inbounds, _ := config["inbounds"].([]interface{})
+			inbounds = append(inbounds, inboundObj)
+			config["inbounds"] = inbounds
+		})
+		if err := m.Start(); err != nil {
+			return fmt.Errorf("failed to start Xray: %v", err)
+		}
+		// Verify it stays alive
+		time.Sleep(2 * time.Second)
+		if !m.IsRunning() {
+			return fmt.Errorf("Xray crashed after start, check inbound config")
+		}
+		fmt.Printf("✅ Xray started with inbound: %s\n", cfg.Tag)
+		return nil
 	}
 
 	configJSON, err := json.Marshal(inboundObj)
