@@ -289,6 +289,9 @@ const zh = {
     days: '天',
     hours: '时',
     minutes: '分',
+    ipv6DockerPrerequisite: 'IPv6 前置条件',
+    ipv6DockerDaemonDesc: '需要先配置 Docker 开启 IPv6 支持，编辑或创建 /etc/docker/daemon.json：',
+    ipv6DockerRestart: '保存后重启 Docker 使配置生效：',
   },
   user: {
     title: '用户管理',

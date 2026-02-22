@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Edit2, Terminal, Container, Copy, Eye, EyeOff, RefreshCw, ArrowUpDown, Network, Download, Check } from 'lucide-react';
+import { Plus, Trash2, Edit2, Terminal, Container, Copy, Eye, EyeOff, RefreshCw, ArrowUpDown, Network, Download, Check, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getNodeList, createNode, updateNode, deleteNode, getNodeInstallCommand, getNodeDockerCommand, reconcileNode, updateNodeBinary } from '@/lib/api/node';
 import { switchXrayVersion, getXrayVersions } from '@/lib/api/xray-node';
@@ -528,7 +528,23 @@ export default function NodePage() {
               <TabsTrigger value="ipv6">IPv6</TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="space-y-2">
+          <div className="space-y-3">
+            {commandIPv6 && commandType === 'docker' && (
+              <div className="rounded-md border border-orange-300 bg-orange-50 dark:border-orange-500/40 dark:bg-orange-950/30 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-orange-700 dark:text-orange-400">
+                  <AlertTriangle className="h-4 w-4" />
+                  {t('node.ipv6DockerPrerequisite')}
+                </div>
+                <p className="text-xs text-orange-600 dark:text-orange-400/80">{t('node.ipv6DockerDaemonDesc')}</p>
+                <pre className="bg-white dark:bg-black/20 border rounded p-2 text-xs font-mono">{`# /etc/docker/daemon.json
+{
+  "ipv6": true,
+  "fixed-cidr-v6": "2001:db8:1::/64"
+}`}</pre>
+                <p className="text-xs text-orange-600 dark:text-orange-400/80">{t('node.ipv6DockerRestart')}</p>
+                <pre className="bg-white dark:bg-black/20 border rounded p-2 text-xs font-mono">systemctl restart docker</pre>
+              </div>
+            )}
             <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto whitespace-pre-wrap break-all">
               {(() => {
                 if (!commandIPv6) return commandContent;
