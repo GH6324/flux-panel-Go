@@ -9,11 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Edit2, Terminal, Container, Copy, Eye, EyeOff, RefreshCw, ArrowUpDown, Network, Download } from 'lucide-react';
+import { Plus, Trash2, Edit2, Terminal, Container, Copy, Eye, EyeOff, RefreshCw, ArrowUpDown, Network, Download, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { getNodeList, createNode, updateNode, deleteNode, getNodeInstallCommand, getNodeDockerCommand, reconcileNode, updateNodeBinary } from '@/lib/api/node';
 import { switchXrayVersion, getXrayVersions } from '@/lib/api/xray-node';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getVersion } from '@/lib/api/system';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useTranslation } from '@/lib/i18n';
@@ -40,6 +41,8 @@ export default function NodePage() {
   const [commandDialog, setCommandDialog] = useState(false);
   const [commandContent, setCommandContent] = useState('');
   const [commandTitle, setCommandTitle] = useState('');
+  const [commandType, setCommandType] = useState<'install' | 'docker'>('install');
+  const [commandIPv6, setCommandIPv6] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
   const [panelVersion, setPanelVersion] = useState('');
 
@@ -125,6 +128,8 @@ export default function NodePage() {
     if (res.code === 0) {
       setCommandTitle(t('node.installCommand'));
       setCommandContent(res.data || '');
+      setCommandType('install');
+      setCommandIPv6(false);
       setCommandDialog(true);
     } else {
       toast.error(res.msg);
@@ -136,6 +141,8 @@ export default function NodePage() {
     if (res.code === 0) {
       setCommandTitle(t('node.dockerCommand'));
       setCommandContent(res.data || '');
+      setCommandType('docker');
+      setCommandIPv6(false);
       setCommandDialog(true);
     } else {
       toast.error(res.msg);
@@ -225,9 +232,27 @@ export default function NodePage() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(t('common.copySuccess'));
+  const [copied, setCopied] = useState(false);
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success(t('common.copySuccess'));
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for insecure contexts
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopied(true);
+      toast.success(t('common.copySuccess'));
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const formatUptime = (seconds: number) => {
@@ -497,21 +522,43 @@ export default function NodePage() {
           <DialogHeader>
             <DialogTitle>{commandTitle}</DialogTitle>
           </DialogHeader>
-          <div className="relative">
+          <Tabs value={commandIPv6 ? 'ipv6' : 'standard'} onValueChange={(v) => setCommandIPv6(v === 'ipv6')}>
+            <TabsList className="mb-2">
+              <TabsTrigger value="standard">Standard</TabsTrigger>
+              <TabsTrigger value="ipv6">IPv6</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="space-y-2">
             <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto whitespace-pre-wrap break-all">
-              {commandContent}
+              {(() => {
+                if (!commandIPv6) return commandContent;
+                if (commandType === 'install') {
+                  return commandContent
+                    .replace('curl -fsSL', 'curl -6fsSL')
+                    .replace(/(\S+)$/, '$1 6');
+                }
+                return commandContent;
+              })()}
             </pre>
-            <Button
-              variant="outline"
-              size="sm"
-              className="absolute top-2 right-2"
-              onClick={() => copyToClipboard(commandContent)}
-            >
-              <Copy className="mr-2 h-3 w-3" />{t('common.copy')}
-            </Button>
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  let cmd = commandContent;
+                  if (commandIPv6 && commandType === 'install') {
+                    cmd = cmd.replace('curl -fsSL', 'curl -6fsSL').replace(/(\S+)$/, '$1 6');
+                  }
+                  copyToClipboard(cmd);
+                }}
+              >
+                {copied ? <Check className="mr-2 h-3 w-3" /> : <Copy className="mr-2 h-3 w-3" />}
+                {copied ? t('common.copied') : t('common.copy')}
+              </Button>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCommandDialog(false)}>{t('common.cancel')}</Button>
+            <Button variant="outline" onClick={() => setCommandDialog(false)}>{t('common.close')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

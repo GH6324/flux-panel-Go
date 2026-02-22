@@ -31,6 +31,7 @@ const zh = {
     offline: '离线',
     enabled: '启用',
     disabled: '禁用',
+    copied: '已复制',
     copySuccess: '已复制到剪贴板',
     confirmDelete: '确定删除?',
     createSuccess: '创建成功',
@@ -131,6 +132,7 @@ const zh = {
   forward: {
     title: '转发管理',
     createForward: '创建转发',
+    allTunnels: '全部隧道',
     name: '名称',
     tunnel: '隧道',
     entryPort: '入口端口',

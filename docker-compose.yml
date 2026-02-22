@@ -25,14 +25,14 @@ services:
       retries: 10
 
   gost-binary-init:
-    image: 0xnetuser/gost-binary:2.0.7
+    image: 0xnetuser/gost-binary:2.0.8
     container_name: gost-binary-init
     volumes:
       - node_binary:/data/node
     restart: "no"
 
   backend:
-    image: 0xnetuser/go-backend:2.0.7
+    image: 0xnetuser/go-backend:2.0.8
     container_name: go-backend
     restart: unless-stopped
     environment:
@@ -65,11 +65,12 @@ services:
       start_period: 10s
 
   frontend:
-    image: 0xnetuser/nextjs-frontend:2.0.7
+    image: 0xnetuser/nextjs-frontend:2.0.8
     container_name: nextjs-frontend
     restart: unless-stopped
     ports:
-      - "${PANEL_PORT:-6366}:80"
+      # IPv6: set PANEL_LISTEN=[::] in .env for dual-stack (IPv4+IPv6)
+      - "${PANEL_LISTEN:-0.0.0.0}:${PANEL_PORT:-6366}:80"
     depends_on:
       backend:
         condition: service_healthy

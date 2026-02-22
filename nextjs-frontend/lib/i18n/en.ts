@@ -33,6 +33,7 @@ const en: Translations = {
     offline: 'Offline',
     enabled: 'Enabled',
     disabled: 'Disabled',
+    copied: 'Copied',
     copySuccess: 'Copied to clipboard',
     confirmDelete: 'Confirm delete?',
     createSuccess: 'Created successfully',
@@ -133,6 +134,7 @@ const en: Translations = {
   forward: {
     title: 'Forward Management',
     createForward: 'Create Forward',
+    allTunnels: 'All Tunnels',
     name: 'Name',
     tunnel: 'Tunnel',
     entryPort: 'Entry Port',

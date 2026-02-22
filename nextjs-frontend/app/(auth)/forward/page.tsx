@@ -28,6 +28,7 @@ export default function ForwardPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingForward, setEditingForward] = useState<any>(null);
   const [form, setForm] = useState({ name: '', tunnelId: '', remoteAddr: '', inPort: '', listenIp: '', strategy: 'round', interfaceName: '' });
+  const [filterTunnelId, setFilterTunnelId] = useState('');
   const [diagnoseDialogOpen, setDiagnoseDialogOpen] = useState(false);
   const [diagnoseResult, setDiagnoseResult] = useState<any>(null);
   const [diagnosing, setDiagnosing] = useState<number | null>(null);
@@ -184,7 +185,20 @@ export default function ForwardPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">{t('forward.title')}</h2>
-        <Button onClick={handleCreate}><Plus className="mr-2 h-4 w-4" />{t('forward.createForward')}</Button>
+        <div className="flex items-center gap-2">
+          {tunnels.length > 1 && (
+            <Select value={filterTunnelId} onValueChange={setFilterTunnelId}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder={t('forward.allTunnels')} /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('forward.allTunnels')}</SelectItem>
+                {tunnels.map((tun: any) => (
+                  <SelectItem key={tun.id} value={tun.id.toString()}>{tun.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button onClick={handleCreate}><Plus className="mr-2 h-4 w-4" />{t('forward.createForward')}</Button>
+        </div>
       </div>
 
       <Card>
@@ -203,12 +217,16 @@ export default function ForwardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {(() => {
+                const filtered = filterTunnelId && filterTunnelId !== 'all'
+                  ? forwards.filter(f => f.tunnelId?.toString() === filterTunnelId)
+                  : forwards;
+                return loading ? (
                 <TableRow><TableCell colSpan={8} className="text-center py-8">{t('common.loading')}</TableCell></TableRow>
-              ) : forwards.length === 0 ? (
+              ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{t('common.noData')}</TableCell></TableRow>
               ) : (
-                forwards.map((f) => (
+                filtered.map((f) => (
                   <TableRow key={f.id}>
                     <TableCell className="font-medium">{f.name}</TableCell>
                     <TableCell>{f.tunnelName}</TableCell>
@@ -249,7 +267,8 @@ export default function ForwardPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              )}
+              );
+              })()}
             </TableBody>
           </Table>
         </CardContent>

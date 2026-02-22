@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 )
 
@@ -40,5 +41,33 @@ func LoadConfig(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("服务器地址不能为空")
 	}
 
+	// Normalize IPv6 addresses: ensure brackets for bare IPv6 like "2001:db8::1:8080"
+	config.Addr = normalizeAddr(config.Addr)
+
 	return &config, nil
+}
+
+// normalizeAddr ensures IPv6 addresses are properly bracketed for URL use.
+// e.g. "example.com:8080" → unchanged, "[::1]:8080" → unchanged,
+// "2001:db8::1" → "[2001:db8::1]" (bare IPv6 without port)
+func normalizeAddr(addr string) string {
+	// Already bracketed — fine
+	if len(addr) > 0 && addr[0] == '[' {
+		return addr
+	}
+	// Try host:port split; if it works and host is not an IP, it's a domain — fine
+	host, port, err := net.SplitHostPort(addr)
+	if err == nil {
+		// host:port split succeeded; check if host is IPv6
+		if ip := net.ParseIP(host); ip != nil && ip.To4() == nil {
+			// IPv6 host without brackets — add them
+			return "[" + host + "]:" + port
+		}
+		return addr
+	}
+	// No port — check if the whole string is an IPv6 address
+	if ip := net.ParseIP(addr); ip != nil && ip.To4() == nil {
+		return "[" + addr + "]"
+	}
+	return addr
 }

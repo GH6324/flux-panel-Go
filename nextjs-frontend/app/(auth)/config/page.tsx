@@ -174,6 +174,7 @@ export default function ConfigPage() {
     const res = await updateConfigs(configs);
     if (res.code === 0) {
       toast.success(t('config.configSaved'));
+      await loadData();
     } else {
       toast.error(res.msg || t('config.saveFailed'));
     }

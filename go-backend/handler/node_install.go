@@ -17,10 +17,17 @@ set -e
 NODE_ID=$1
 NODE_SECRET=$2
 PANEL_ADDR=$3
+USE_IPV6=$4
 
 if [ -z "$NODE_ID" ] || [ -z "$NODE_SECRET" ] || [ -z "$PANEL_ADDR" ]; then
-    echo "Usage: $0 <node_id> <node_secret> <panel_addr>"
+    echo "Usage: $0 <node_id> <node_secret> <panel_addr> [6]"
     exit 1
+fi
+
+CURL_FLAGS="-fsSL"
+if [ "$USE_IPV6" = "6" ]; then
+    CURL_FLAGS="-6fsSL"
+    echo "IPv6 mode enabled"
 fi
 
 # Detect architecture
@@ -34,11 +41,35 @@ esac
 
 # Download binary
 echo "Downloading gost-node for $ARCH..."
-curl -fsSL "$PANEL_ADDR/node-install/binary/$ARCH" -o /usr/local/bin/gost-node
+curl $CURL_FLAGS "$PANEL_ADDR/node-install/binary/$ARCH" -o /usr/local/bin/gost-node
 chmod +x /usr/local/bin/gost-node
 
-# Convert panel address to WebSocket address
-WS_ADDR=$(echo "$PANEL_ADDR" | sed 's|^https://|wss://|; s|^http://|ws://|')
+# Create data directory
+mkdir -p /etc/gost
+
+# Detect TLS from panel address
+USE_TLS=false
+ADDR_VALUE="$PANEL_ADDR"
+case "$ADDR_VALUE" in
+    https://*) USE_TLS=true ;;
+esac
+ADDR_VALUE="${ADDR_VALUE#http://}"
+ADDR_VALUE="${ADDR_VALUE#https://}"
+ADDR_VALUE="${ADDR_VALUE%/}"
+
+# Generate config.json
+cat > /etc/gost/config.json << EOF
+{
+  "addr": "$ADDR_VALUE",
+  "secret": "$NODE_SECRET",
+  "use_tls": $USE_TLS
+}
+EOF
+
+# Ensure runtime config file exists
+if [ ! -f /etc/gost/gost.json ]; then
+    echo "{}" > /etc/gost/gost.json
+fi
 
 # Create systemd service
 cat > /etc/systemd/system/gost-node.service << EOF
@@ -48,10 +79,7 @@ After=network.target
 
 [Service]
 Type=simple
-Environment=NODE_ID=$NODE_ID
-Environment=NODE_SECRET=$NODE_SECRET
-Environment=WS_ADDR=${WS_ADDR}/system-info
-Environment=FLOW_ADDR=$PANEL_ADDR
+WorkingDirectory=/etc/gost
 ExecStart=/usr/local/bin/gost-node
 Restart=always
 RestartSec=5
@@ -66,6 +94,8 @@ systemctl restart gost-node
 
 echo "GOST Node installed and started successfully!"
 echo "Node ID: $NODE_ID"
+echo "Config: /etc/gost/config.json"
+echo "Logs: journalctl -u gost-node -f"
 `
 	c.Header("Content-Type", "text/plain; charset=utf-8")
 	c.String(http.StatusOK, script)

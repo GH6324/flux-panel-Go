@@ -31,12 +31,8 @@ func GetAdminDashboardStats() dto.R {
 	DB.Model(&model.Forward{}).Count(&totalForwards)
 	DB.Model(&model.Forward{}).Where("status = 1").Count(&activeForwards)
 
-	// Today's traffic (sum of all users' in_flow + out_flow)
-	var todayTraffic struct{ Total int64 }
-	DB.Model(&model.User{}).Select("COALESCE(SUM(in_flow + out_flow), 0) as total").Scan(&todayTraffic)
-
-	// Traffic history: last 24 hours from statistics_flow (aggregated across all users)
-	trafficHistory := getTrafficHistory(0)
+	// Traffic history + today's traffic (computed from same snapshot data)
+	trafficData := getTrafficData(0)
 
 	// Top 5 users by traffic
 	type TopUser struct {
@@ -71,8 +67,8 @@ func GetAdminDashboardStats() dto.R {
 		"nodes":          map[string]int64{"total": totalNodes, "online": onlineNodes},
 		"users":          map[string]int64{"total": totalUsers},
 		"forwards":       map[string]int64{"total": totalForwards, "active": activeForwards},
-		"todayTraffic":   todayTraffic.Total,
-		"trafficHistory": trafficHistory,
+		"todayTraffic":   trafficData.todayFlow,
+		"trafficHistory": trafficData.history,
 		"topUsers":       topUsers,
 		"nodeList":       nodeList,
 	})
@@ -100,19 +96,25 @@ func GetUserDashboardStats(userId int64) dto.R {
 	DB.Model(&model.Forward{}).Where("user_id = ?", userId).Count(&forwardCount)
 
 	// Traffic history for this user
-	trafficHistory := getTrafficHistory(userId)
+	trafficData := getTrafficData(userId)
 
 	return dto.Ok(map[string]interface{}{
 		"package":        packageInfo,
 		"forwards":       forwardCount,
-		"trafficHistory": trafficHistory,
+		"trafficHistory": trafficData.history,
 	})
 }
 
-// getTrafficHistory returns 24h traffic data from statistics_forward_flow.
+// trafficData holds both 24h traffic history and today's total.
+type trafficData struct {
+	history  []map[string]interface{}
+	todayFlow int64
+}
+
+// getTrafficData returns 24h traffic history and today's total from statistics_forward_flow.
 // Uses cumulative snapshots with delta computation (same approach as monitor page).
 // If userId=0, aggregates all forwards; otherwise filters by user's forwards.
-func getTrafficHistory(userId int64) []map[string]interface{} {
+func getTrafficData(userId int64) trafficData {
 	cutoff := time.Now().Unix() - 25*3600 // fetch one extra hour for delta computation
 
 	var records []model.StatisticsForwardFlow
@@ -121,14 +123,14 @@ func getTrafficHistory(userId int64) []map[string]interface{} {
 		var forwardIds []int64
 		DB.Model(&model.Forward{}).Where("user_id = ?", userId).Pluck("id", &forwardIds)
 		if len(forwardIds) == 0 {
-			return buildEmptyTrafficHistory()
+			return trafficData{history: buildEmptyTrafficHistory()}
 		}
 		query = query.Where("forward_id IN ?", forwardIds)
 	}
 	query.Find(&records)
 
 	if len(records) == 0 {
-		return buildEmptyTrafficHistory()
+		return trafficData{history: buildEmptyTrafficHistory()}
 	}
 
 	// Group by (forwardId, bucket) → last snapshot
@@ -187,8 +189,9 @@ func getTrafficHistory(userId int64) []map[string]interface{} {
 	}
 
 	// Build 24-hour result
+	now := time.Now()
+	nowTs := now.Unix()
 	result := make([]map[string]interface{}, 0, 24)
-	nowTs := time.Now().Unix()
 	for i := 23; i >= 0; i-- {
 		bt := ((nowTs - int64(i)*3600) / bucketSize) * bucketSize
 		t := time.Unix(bt, 0)
@@ -199,7 +202,16 @@ func getTrafficHistory(userId int64) []map[string]interface{} {
 		})
 	}
 
-	return result
+	// Sum today's traffic (buckets from 00:00 today onward)
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
+	var todayTotal int64
+	for bt, flow := range bucketFlow {
+		if bt >= todayStart {
+			todayTotal += flow
+		}
+	}
+
+	return trafficData{history: result, todayFlow: todayTotal}
 }
 
 func buildEmptyTrafficHistory() []map[string]interface{} {
