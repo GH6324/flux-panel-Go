@@ -47,6 +47,31 @@ chmod +x /usr/local/bin/gost-node
 # Create data directory
 mkdir -p /etc/gost
 
+# Install Xray
+if [ -x /usr/local/bin/xray ]; then
+    echo "Xray already installed, skipping..."
+else
+    XRAY_ARCH=""
+    case $ARCH in
+        amd64) XRAY_ARCH="64" ;;
+        arm64) XRAY_ARCH="arm64-v8a" ;;
+        arm)   XRAY_ARCH="arm32-v7a" ;;
+    esac
+    if [ -n "$XRAY_ARCH" ]; then
+        echo "Installing Xray for $ARCH..."
+        XRAY_URL="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-${XRAY_ARCH}.zip"
+        curl $CURL_FLAGS "$XRAY_URL" -o /tmp/xray.zip || { echo "Warning: Xray download failed, skipping"; XRAY_ARCH=""; }
+        if [ -n "$XRAY_ARCH" ] && [ -f /tmp/xray.zip ]; then
+            unzip -qo /tmp/xray.zip -d /tmp/xray 2>/dev/null
+            mv /tmp/xray/xray /usr/local/bin/xray
+            chmod +x /usr/local/bin/xray
+            cp /usr/local/bin/xray /etc/gost/xray
+            rm -rf /tmp/xray /tmp/xray.zip
+            echo "Xray installed: $(/usr/local/bin/xray version 2>/dev/null | head -1)"
+        fi
+    fi
+fi
+
 # Detect TLS from panel address
 USE_TLS=false
 ADDR_VALUE="$PANEL_ADDR"
