@@ -708,9 +708,14 @@ func (m *XrayManager) HotAddUser(tag, email, uuidOrPassword, flow, protocol stri
 				clientObj["password"] = uuidOrPassword
 			case "shadowsocks":
 				clientObj["password"] = uuidOrPassword
-				// Xray requires each SS client to have its own method field
+				// SS2022 multi-user: clients must have empty method (method is inbound-level only)
+				// Legacy SS: each client needs its own method field
 				if ssMethod, ok := settings["method"].(string); ok && ssMethod != "" {
-					clientObj["method"] = ssMethod
+					if strings.HasPrefix(ssMethod, "2022-blake3-") {
+						clientObj["method"] = ""
+					} else {
+						clientObj["method"] = ssMethod
+					}
 				}
 			}
 			clients = append(clients, clientObj)
@@ -862,14 +867,19 @@ func (m *XrayManager) reloadInbound(tag string) error {
 			continue
 		}
 
-		// For shadowsocks: ensure each client has the method field (Xray requires it)
+		// For shadowsocks: ensure each client has the correct method field
+		// SS2022 multi-user: clients must have empty method (method is inbound-level only)
+		// Legacy SS: each client needs its own method field copied from inbound
 		if ibMap["protocol"] == "shadowsocks" {
 			if settings, ok := ibMap["settings"].(map[string]interface{}); ok {
 				if method, ok := settings["method"].(string); ok && method != "" {
+					isSS2022 := strings.HasPrefix(method, "2022-blake3-")
 					if clients, ok := settings["clients"].([]interface{}); ok {
 						for _, c := range clients {
 							if cMap, ok := c.(map[string]interface{}); ok {
-								if _, has := cMap["method"]; !has {
+								if isSS2022 {
+									cMap["method"] = ""
+								} else if _, has := cMap["method"]; !has {
 									cMap["method"] = method
 								}
 							}

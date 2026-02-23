@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.0.25 — 节点运行环境检测 + 离线节点删除死锁修复
+## v2.0.25 — 节点运行环境检测 + SS2022 热加载修复 + 离线节点删除死锁修复
 
 ### New Features
 
@@ -9,6 +9,7 @@
 
 ### Bug Fixes
 
+- **SS2022 多用户热加载失败**：Shadowsocks 2022 (2022-blake3-*) 多用户模式下，客户端 method 字段必须为空字符串；修复 HotAddUser 和 reloadInbound 以及后端 mergeClientsIntoSettings 中错误复制 inbound 方法到客户端的问题
 - **离线节点资源删除死循环**：转发删除时若节点离线则跳过 GOST 清理，直接删除数据库记录，打破 节点→隧道→转发→节点 的删除死锁
 - **节点更新 panelAddr 兼容**：NodeUpdateBinary 恢复传入 panelAddr，兼容旧版本节点更新
 - **节点更新绕过 CF 代理**：节点端下载二进制时改用自身 `config.json` 中的 `addr` 构建下载地址

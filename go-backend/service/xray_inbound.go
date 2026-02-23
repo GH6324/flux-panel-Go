@@ -500,7 +500,11 @@ func mergeClientsIntoSettings(inbound *model.XrayInbound) string {
 		case "shadowsocks":
 			obj["password"] = c.UuidOrPassword
 			if ssMethod != "" {
-				obj["method"] = ssMethod
+				if strings.HasPrefix(ssMethod, "2022-blake3-") {
+					obj["method"] = ""
+				} else {
+					obj["method"] = ssMethod
+				}
 			}
 		}
 		clientArr = append(clientArr, obj)
