@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.0.22 — 入站管理按节点筛选和分组展示
+
+### New Features
+
+- **入站按节点筛选**：多节点时入站管理页显示节点筛选下拉框
+- **入站按节点分组**：未筛选时按节点自动分组，插入节点名称标题行
+
+### Changed Files
+
+- `nextjs-frontend/app/(auth)/xray/inbound/page.tsx` — 节点筛选 + 分组展示
+- `nextjs-frontend/lib/i18n/zh.ts` — 添加 `allNodes`
+- `nextjs-frontend/lib/i18n/en.ts` — 添加 `allNodes`
+
+---
+
 ## v2.0.21 — 自动停止 Xray + 监听地址表单修复
 
 ### Bug Fixes
