@@ -386,6 +386,7 @@ const en: Translations = {
     totalUpload: '↑ Total',
     totalDownload: '↓ Total',
     nic: 'NIC',
+    panelAddr: 'Panel',
     gostTrafficStats: 'GOST Traffic Statistics',
     xrayTrafficStats: 'Xray Traffic Statistics',
     globalTrafficStats: 'Global Traffic Statistics',
@@ -414,6 +415,9 @@ const en: Translations = {
     noLatencyData: 'No latency data',
     noNodes: 'No nodes',
     timeout: 'Timeout',
+    runtime: 'Runtime',
+    docker: 'Docker',
+    host: 'Host',
   },
   config: {
     title: 'System Settings',

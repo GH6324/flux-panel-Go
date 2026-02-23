@@ -52,6 +52,8 @@ interface NodeHealth {
   interfaces?: { name: string; ips: string[] }[];
   bytesReceived?: number;
   bytesTransmitted?: number;
+  panelAddr?: string;
+  runtime?: string;
 }
 
 function formatSpeed(bytesPerSec: number) {
@@ -448,7 +450,19 @@ export default function MonitorPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <div className="text-muted-foreground">{node.serverIp}</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">{node.serverIp}</span>
+                  {node.online && node.runtime && (
+                    <Badge variant={node.runtime === 'docker' ? 'outline' : 'secondary'} className="text-xs px-1.5 py-0">
+                      {node.runtime === 'docker' ? t('monitor.docker') : t('monitor.host')}
+                    </Badge>
+                  )}
+                </div>
+                {node.online && node.panelAddr && (
+                  <div className="text-xs text-muted-foreground truncate" title={node.panelAddr}>
+                    {t('monitor.panelAddr')}: {node.panelAddr}
+                  </div>
+                )}
                 {node.online && (
                   <>
                     <div className="flex items-center justify-between">

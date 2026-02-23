@@ -384,6 +384,7 @@ const zh = {
     totalUpload: '↑ 总计',
     totalDownload: '↓ 总计',
     nic: '网卡',
+    panelAddr: '面板地址',
     gostTrafficStats: 'GOST 流量统计',
     xrayTrafficStats: 'Xray 流量统计',
     globalTrafficStats: '全局流量统计',
@@ -412,6 +413,9 @@ const zh = {
     noLatencyData: '暂无延迟数据',
     noNodes: '暂无节点',
     timeout: '超时',
+    runtime: '运行环境',
+    docker: 'Docker',
+    host: '裸机',
   },
   config: {
     title: '系统配置',

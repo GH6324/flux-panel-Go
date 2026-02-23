@@ -42,6 +42,8 @@ func GetNodeHealthList() dto.R {
 				item["interfaces"] = sysInfo.Interfaces
 				item["bytesReceived"] = sysInfo.BytesReceived
 				item["bytesTransmitted"] = sysInfo.BytesTransmitted
+				item["panelAddr"] = sysInfo.PanelAddr
+				item["runtime"] = sysInfo.Runtime
 			}
 		}
 

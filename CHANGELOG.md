@@ -1,5 +1,36 @@
 # Changelog
 
+## v2.0.23 — 节点运行环境检测 + 节点更新绕过 Cloudflare
+
+### New Features
+
+- **节点运行环境检测**：节点上报 runtime 字段（Docker / 裸机），状态监控和节点管理页面展示运行环境 Badge
+
+### Bug Fixes
+
+- **节点更新绕过 CF 代理**：节点端下载二进制时改用自身 `config.json` 中的 `addr` 构建下载地址，避免面板 `panelAddr` 指向 CF 代理域名导致下载失败
+- **节点更新同步报错**：下载改为同步执行（6 分钟超时），失败时错误信息返回面板端展示，不再静默失败
+- **面板地址缺少 scheme**：`panel_addr` 未包含 `http://` 时自动补全，防止 HTTP 请求失败
+- **裸机重装 text file busy**：安装脚本先停止已有服务再删除旧二进制，避免 curl 写入正在运行的文件报错
+- **页面标题/描述未同步**：`SiteConfigProvider` 动态更新 `document.title` 和 `<meta description>`，不再使用硬编码值
+
+### Changed Files
+
+- `go-gost/x/socket/websocket_reporter.go` — SystemInfo 增加 Runtime 字段，检测 /.dockerenv
+- `go-backend/pkg/ws.go` — NodeSystemInfo 增加 Runtime，解析映射
+- `go-backend/service/monitor.go` — GetNodeHealthList 输出 runtime
+- `go-backend/service/node.go` — GetAllNodes overlay 输出 runtime
+- `go-backend/pkg/gost.go` — `NodeUpdateBinary` 移除 panelAddr 参数
+- `go-backend/handler/node.go` — 移除 panelAddr 推导逻辑
+- `go-backend/handler/node_install.go` — 安装脚本增加停止服务 + 删除旧二进制
+- `nextjs-frontend/app/(auth)/monitor/page.tsx` — 节点卡片展示运行环境 Badge
+- `nextjs-frontend/app/(auth)/node/page.tsx` — 节点表格展示运行环境 Badge
+- `nextjs-frontend/lib/i18n/zh.ts` — 添加 runtime/docker/host 翻译
+- `nextjs-frontend/lib/i18n/en.ts` — 添加 runtime/docker/host 翻译
+- `nextjs-frontend/lib/site-config.tsx` — 动态更新 title 和 meta description
+
+---
+
 ## v2.0.22 — 入站管理按节点筛选和分组展示
 
 ### New Features

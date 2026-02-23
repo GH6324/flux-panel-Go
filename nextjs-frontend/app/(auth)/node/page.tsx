@@ -309,9 +309,16 @@ export default function NodePage() {
                     <TableCell className="text-sm">{n.serverIp}</TableCell>
                     <TableCell>{n.portSta} - {n.portEnd}</TableCell>
                     <TableCell>
-                      <Badge variant={n.status === 1 ? 'default' : 'destructive'}>
-                        {n.status === 1 ? t('common.online') : t('common.offline')}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge variant={n.status === 1 ? 'default' : 'destructive'}>
+                          {n.status === 1 ? t('common.online') : t('common.offline')}
+                        </Badge>
+                        {n.status === 1 && n.runtime && (
+                          <Badge variant={n.runtime === 'docker' ? 'outline' : 'secondary'} className="text-xs">
+                            {n.runtime === 'docker' ? t('monitor.docker') : t('monitor.host')}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm">
                       {n.version || '-'}

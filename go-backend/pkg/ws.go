@@ -81,6 +81,8 @@ type NodeSystemInfo struct {
 	XrayRunning      bool           `json:"xrayRunning"`
 	XrayVersion      string         `json:"xrayVersion"`
 	Interfaces       []NetInterface `json:"interfaces"`
+	PanelAddr        string         `json:"panelAddr"`
+	Runtime          string         `json:"runtime"`
 }
 
 // GetNodeSystemInfo returns the latest cached system info for a node, or nil.
@@ -254,6 +256,8 @@ func (m *WSManager) readNodeMessages(nodeId int64, ns *NodeSession) {
 				BytesTransmitted uint64  `json:"bytes_transmitted"`
 				XrayRunning      bool    `json:"xray_running"`
 				XrayVersion      string  `json:"xray_version"`
+				PanelAddr        string  `json:"panel_addr"`
+				Runtime          string  `json:"runtime"`
 				Interfaces       []struct {
 					Name string   `json:"name"`
 					IPs  []string `json:"ips"`
@@ -268,6 +272,8 @@ func (m *WSManager) readNodeMessages(nodeId int64, ns *NodeSession) {
 					BytesTransmitted: sysInfo.BytesTransmitted,
 					XrayRunning:      sysInfo.XrayRunning,
 					XrayVersion:      sysInfo.XrayVersion,
+					PanelAddr:        sysInfo.PanelAddr,
+					Runtime:          sysInfo.Runtime,
 				}
 				for _, iface := range sysInfo.Interfaces {
 					info.Interfaces = append(info.Interfaces, NetInterface{

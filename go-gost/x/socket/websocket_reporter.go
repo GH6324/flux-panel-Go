@@ -46,6 +46,8 @@ type SystemInfo struct {
 	XrayRunning      bool           `json:"xray_running"`      // Xray 是否运行
 	XrayVersion      string         `json:"xray_version"`      // Xray 版本号
 	Interfaces       []NetInterface `json:"interfaces"`        // 网卡列表
+	PanelAddr        string         `json:"panel_addr"`        // 连接的面板地址
+	Runtime          string         `json:"runtime"`           // 运行环境: docker / host
 }
 
 // NetworkStats 网络统计信息
@@ -331,6 +333,20 @@ func (w *WebSocketReporter) collectSystemInfo() SystemInfo {
 		MemoryUsage:      memoryInfo.Usage,
 		Interfaces:       getInterfaces(),
 	}
+
+	// Detect runtime environment
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		info.Runtime = "docker"
+	} else {
+		info.Runtime = "host"
+	}
+
+	// Attach panel address
+	scheme := "http"
+	if w.useTLS {
+		scheme = "https"
+	}
+	info.PanelAddr = scheme + "://" + w.addr
 
 	// Attach Xray status if manager is available
 	if w.xrayManager != nil {
@@ -1192,28 +1208,19 @@ func (w *WebSocketReporter) handleXraySwitchVersion(data interface{}) error {
 }
 
 func (w *WebSocketReporter) handleNodeUpdateBinary(data interface{}) error {
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return fmt.Errorf("序列化数据失败: %v", err)
-	}
-
-	var req struct {
-		PanelAddr string `json:"panelAddr"`
-	}
-	if err := json.Unmarshal(jsonData, &req); err != nil {
-		return fmt.Errorf("解析更新请求失败: %v", err)
-	}
-
-	if req.PanelAddr == "" {
-		return fmt.Errorf("panelAddr 不能为空")
-	}
-
 	if !atomic.CompareAndSwapInt32(&w.updating, 0, 1) {
 		return fmt.Errorf("节点正在更新中，请勿重复操作")
 	}
 	defer atomic.StoreInt32(&w.updating, 0)
 
-	downloadURL := fmt.Sprintf("%s/node-install/binary/%s", req.PanelAddr, runtime.GOARCH)
+	// 使用节点自身 config.json 中的 addr 构建下载地址，
+	// 该地址是节点已经成功连接 WebSocket 的地址，保证可达，
+	// 避免面板端 panelAddr 可能指向 Cloudflare 代理域名导致下载失败。
+	scheme := "http"
+	if w.useTLS {
+		scheme = "https"
+	}
+	downloadURL := fmt.Sprintf("%s://%s/node-install/binary/%s", scheme, w.addr, runtime.GOARCH)
 	fmt.Printf("⬇️ 开始下载节点更新: %s\n", downloadURL)
 
 	// 1. 下载到临时文件
