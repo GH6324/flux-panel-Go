@@ -4,6 +4,14 @@ A traffic forwarding and proxy management panel.
 
 ---
 
+
+## Note
+
+升级到2.1.0及以上版本时，后台中的节点更新功能无法使用，需要手动先卸载再更新
+
+建议升级前，记下节点的卸载命令，面板成功升级后再重新安装
+
+
 ## Deployment
 
 > Requires Docker. Supports amd64 and arm64 architectures.
@@ -23,7 +31,6 @@ The script provides an interactive menu:
 | 3. Uninstall | Removes containers, volumes, and config files |
 | 4. Backup | Exports MySQL database backup to current directory |
 
-IPv6 is automatically detected and configured. Users in mainland China get CDN-accelerated downloads.
 
 ### Option 2: Manual Docker Compose
 
