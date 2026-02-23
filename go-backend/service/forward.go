@@ -426,20 +426,24 @@ func DeleteForward(id int64, userId int64, roleId int) dto.R {
 		userTunnel = getUserTunnel(forward.UserId, tunnel.ID)
 	}
 
-	// 4. Get required nodes
+	// 4. Get required nodes and attempt GOST cleanup
 	inNode, outNode, nodeErr := getRequiredNodes(&tunnel)
-	if nodeErr != "" {
-		return dto.Err(nodeErr)
+	if nodeErr == "" {
+		// Nodes exist — only clean GOST services if they are online
+		inOnline := pkg.WS != nil && pkg.WS.IsNodeOnline(inNode.ID)
+		outOnline := outNode == nil || (pkg.WS != nil && pkg.WS.IsNodeOnline(outNode.ID))
+		if inOnline && outOnline {
+			serviceName := buildServiceName(forward.ID, forward.UserId, userTunnel)
+			gostErr := deleteGostServicesWithIP(&tunnel, inNode, outNode, serviceName, forward.ListenIp)
+			if gostErr != "" {
+				return dto.Err(gostErr)
+			}
+		}
+		// Nodes offline: skip GOST cleanup, services aren't running
 	}
+	// Nodes deleted from DB: skip GOST cleanup
 
-	// 5. Delete GOST services
-	serviceName := buildServiceName(forward.ID, forward.UserId, userTunnel)
-	gostErr := deleteGostServicesWithIP(&tunnel, inNode, outNode, serviceName, forward.ListenIp)
-	if gostErr != "" {
-		return dto.Err(gostErr)
-	}
-
-	// 6. Delete forward record
+	// 5. Delete forward record
 	if err := DB.Delete(&model.Forward{}, id).Error; err != nil {
 		return dto.Err("端口转发删除失败")
 	}
