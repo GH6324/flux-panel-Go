@@ -86,6 +86,7 @@ func CreateNode(d dto.NodeDto) dto.R {
 		PortEnd:          d.PortEnd,
 		Secret:           pkg.GenerateSecureSecret(),
 		Status:           0,
+		GroupName:        d.GroupName,
 		CreatedTime:      time.Now().UnixMilli(),
 		UpdatedTime:      time.Now().UnixMilli(),
 		DisguiseName:     disguise,
@@ -132,6 +133,7 @@ func GetAllNodes() dto.R {
 			"updatedTime":      n.UpdatedTime,
 			"status":           status,
 			"inx":              n.Inx,
+			"groupName":        n.GroupName,
 			"disguiseName":     n.DisguiseName,
 			"xrayDisguiseName": n.XrayDisguiseName,
 		}
@@ -193,6 +195,9 @@ func UpdateNode(d dto.NodeUpdateDto) dto.R {
 	}
 	if d.PortEnd != nil {
 		updates["port_end"] = *d.PortEnd
+	}
+	if d.GroupName != nil {
+		updates["group_name"] = *d.GroupName
 	}
 
 	if err := DB.Model(&node).Updates(updates).Error; err != nil {

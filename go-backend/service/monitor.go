@@ -29,6 +29,7 @@ func GetNodeHealthList() dto.R {
 			"serverIp":  n.ServerIp,
 			"online":    online,
 			"version":   n.Version,
+			"groupName": n.GroupName,
 		}
 
 		if online {

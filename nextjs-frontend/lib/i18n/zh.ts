@@ -316,6 +316,8 @@ const zh = {
     uninstallCommand: '卸载命令',
     disguiseName: '进程伪装名',
     xrayDisguiseName: 'Xray 伪装名',
+    groupName: '分组',
+    groupNamePlaceholder: '例如: 香港、美国',
   },
   user: {
     title: '用户管理',
@@ -422,6 +424,9 @@ const zh = {
     runtime: '运行环境',
     docker: 'Docker',
     host: '裸机',
+    cardView: '卡片',
+    tableView: '表格',
+    ungrouped: '未分组',
   },
   config: {
     title: '系统配置',

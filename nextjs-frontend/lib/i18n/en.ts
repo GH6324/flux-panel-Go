@@ -318,6 +318,8 @@ const en: Translations = {
     uninstallCommand: 'Uninstall Command',
     disguiseName: 'Process Disguise',
     xrayDisguiseName: 'Xray Disguise',
+    groupName: 'Group',
+    groupNamePlaceholder: 'e.g. Hong Kong, US',
   },
   user: {
     title: 'User Management',
@@ -424,6 +426,9 @@ const en: Translations = {
     runtime: 'Runtime',
     docker: 'Docker',
     host: 'Host',
+    cardView: 'Cards',
+    tableView: 'Table',
+    ungrouped: 'Ungrouped',
   },
   config: {
     title: 'System Settings',

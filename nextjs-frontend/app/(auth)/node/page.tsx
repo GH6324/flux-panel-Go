@@ -37,7 +37,7 @@ export default function NodePage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingNode, setEditingNode] = useState<any>(null);
-  const [form, setForm] = useState({ name: '', entryIps: '', serverIp: '', portSta: '', portEnd: '', secret: '' });
+  const [form, setForm] = useState({ name: '', entryIps: '', serverIp: '', portSta: '', portEnd: '', secret: '', groupName: '' });
   const [commandDialog, setCommandDialog] = useState(false);
   const [commandContent, setCommandContent] = useState('');
   const [commandTitle, setCommandTitle] = useState('');
@@ -67,7 +67,7 @@ export default function NodePage() {
 
   const handleCreate = () => {
     setEditingNode(null);
-    setForm({ name: '', entryIps: '', serverIp: '', portSta: '10000', portEnd: '60000', secret: '' });
+    setForm({ name: '', entryIps: '', serverIp: '', portSta: '10000', portEnd: '60000', secret: '', groupName: '' });
     setShowSecret(false);
     setDialogOpen(true);
   };
@@ -81,6 +81,7 @@ export default function NodePage() {
       portSta: node.portSta?.toString() || '',
       portEnd: node.portEnd?.toString() || '',
       secret: node.secret || '',
+      groupName: node.groupName || '',
     });
     setShowSecret(false);
     setDialogOpen(true);
@@ -96,6 +97,7 @@ export default function NodePage() {
       entryIps: form.entryIps.split('\n').map(s => s.trim()).filter(Boolean).join(','),
       serverIp: form.serverIp,
       secret: form.secret || undefined,
+      groupName: form.groupName,
     };
     if (form.portSta) data.portSta = parseInt(form.portSta);
     if (form.portEnd) data.portEnd = parseInt(form.portEnd);
@@ -289,6 +291,7 @@ export default function NodePage() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t('node.name')}</TableHead>
+                <TableHead>{t('node.groupName')}</TableHead>
                 <TableHead>{t('node.disguiseName')}</TableHead>
                 <TableHead>{t('node.entryIp')}</TableHead>
                 <TableHead>{t('node.serverIp')}</TableHead>
@@ -302,15 +305,16 @@ export default function NodePage() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={10} className="text-center py-8">{t('common.loading')}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8">{t('common.loading')}</TableCell></TableRow>
               ) : nodes.length === 0 ? (
-                <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">{t('common.noData')}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">{t('common.noData')}</TableCell></TableRow>
               ) : (
                 nodes.map((n) => (
                   <TableRow key={n.id}>
                     <TableCell className="font-medium">
                       <div>{n.name}</div>
                     </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{n.groupName || '-'}</TableCell>
                     <TableCell className="text-xs">
                       <div title={t('node.disguiseName')}>{n.disguiseName || '-'}</div>
                       <div className="text-muted-foreground" title={t('node.xrayDisguiseName')}>{n.xrayDisguiseName || '-'}</div>
@@ -403,6 +407,10 @@ export default function NodePage() {
             <div className="space-y-2">
               <Label>{t('node.name')}</Label>
               <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder={t('node.nodeName')} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('node.groupName')}</Label>
+              <Input value={form.groupName} onChange={e => setForm(p => ({ ...p, groupName: e.target.value }))} placeholder={t('node.groupNamePlaceholder')} />
             </div>
             <div className="space-y-2">
               <Label>{t('node.entryIpList')}</Label>

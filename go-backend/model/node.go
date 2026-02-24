@@ -20,6 +20,7 @@ type Node struct {
 	UpdatedTime int64  `gorm:"column:updated_time" json:"updatedTime"`
 	Status      int    `gorm:"column:status" json:"status"`
 	Inx              int    `gorm:"column:inx" json:"inx"`
+	GroupName        string `gorm:"column:group_name" json:"groupName"`
 	DisguiseName     string `gorm:"column:disguise_name" json:"disguiseName"`
 	XrayDisguiseName string `gorm:"column:xray_disguise_name" json:"vDisguiseName"`
 }
