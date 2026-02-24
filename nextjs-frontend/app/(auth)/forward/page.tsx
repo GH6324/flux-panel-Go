@@ -319,7 +319,7 @@ export default function ForwardPage() {
               <div className="flex gap-2 text-sm text-muted-foreground">
                 <Badge variant="outline">{diagnoseResult.tunnelType}</Badge>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
                 {diagnoseResult.results?.map((r: any, i: number) => (
                   <div key={i} className="rounded border p-3 space-y-1">
                     <div className="flex items-center justify-between">
