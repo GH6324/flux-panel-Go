@@ -726,7 +726,6 @@ export default function NetworkMonitorPage() {
                 <div className="space-y-6">
                   {tunnelGroups.order.map(tunnelName => {
                     const groupFwds = tunnelGroups.groups[tunnelName];
-                    // Filter chart data to only include keys from this tunnel group
                     const tunnelChartData = latencyChartData.map(row => {
                       const filtered: Record<string, any> = { time: row.time };
                       for (const f of groupFwds) {
@@ -763,50 +762,7 @@ export default function NetworkMonitorPage() {
                             ))}
                           </LineChart>
                         </ResponsiveContainer>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Statistics Summary */}
-              {latencyGroupMode === 'merged' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-4">
-                  {selectedActiveForwards.map((f) => {
-                    const stat = latencyStatsData[f.id];
-                    return (
-                      <div key={f.id} className="border rounded-md p-3 space-y-1">
-                        <div className="font-medium text-sm truncate">{f.name}</div>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{t('monitor.latestLatency')}</span>
-                          <span>{stat ? (stat.last >= 0 ? `${stat.last.toFixed(1)}ms` : t('monitor.timeout')) : '-'}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{t('monitor.avgLatency')}</span>
-                          <span>{stat ? (stat.avg >= 0 ? `${stat.avg.toFixed(1)}ms` : '-') : '-'}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">{t('monitor.successRate')}</span>
-                          {stat ? (
-                            <Badge variant={stat.successRate >= 80 ? 'default' : 'destructive'} className="text-xs">
-                              {stat.successRate}%
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="space-y-4 mt-4">
-                  {tunnelGroups.order.map(tunnelName => {
-                    const groupFwds = tunnelGroups.groups[tunnelName];
-                    return (
-                      <div key={tunnelName}>
-                        <h4 className="text-sm font-semibold text-muted-foreground mb-2">{tunnelName}</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-3">
                           {groupFwds.map((f) => {
                             const stat = latencyStatsData[f.id];
                             return (
@@ -833,6 +789,38 @@ export default function NetworkMonitorPage() {
                               </div>
                             );
                           })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Statistics Summary (merged mode only) */}
+              {latencyGroupMode === 'merged' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-4">
+                  {selectedActiveForwards.map((f) => {
+                    const stat = latencyStatsData[f.id];
+                    return (
+                      <div key={f.id} className="border rounded-md p-3 space-y-1">
+                        <div className="font-medium text-sm truncate">{f.name}</div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{t('monitor.latestLatency')}</span>
+                          <span>{stat ? (stat.last >= 0 ? `${stat.last.toFixed(1)}ms` : t('monitor.timeout')) : '-'}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{t('monitor.avgLatency')}</span>
+                          <span>{stat ? (stat.avg >= 0 ? `${stat.avg.toFixed(1)}ms` : '-') : '-'}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">{t('monitor.successRate')}</span>
+                          {stat ? (
+                            <Badge variant={stat.successRate >= 80 ? 'default' : 'destructive'} className="text-xs">
+                              {stat.successRate}%
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </div>
                       </div>
                     );

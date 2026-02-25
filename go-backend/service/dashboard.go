@@ -40,20 +40,8 @@ func GetAdminDashboardStats() dto.R {
 	// Node traffic ranking
 	nodeTrafficRank := getNodeTrafficRanking()
 
-	// Top 5 users by traffic (GOST + Xray combined)
-	type TopUser struct {
-		Name     string `json:"name" gorm:"column:user"`
-		Flow     int64  `json:"flow"`
-		GostFlow int64  `json:"gostFlow"`
-		XrayFlow int64  `json:"vFlow"`
-	}
-	var topUsers []TopUser
-	DB.Model(&model.User{}).
-		Select("`user`, (in_flow + out_flow + xray_in_flow + xray_out_flow) as flow, (in_flow + out_flow) as gost_flow, (xray_in_flow + xray_out_flow) as xray_flow").
-		Where("role_id != 0").
-		Order("flow DESC").
-		Limit(5).
-		Find(&topUsers)
+	// Top 5 users by monthly traffic
+	topUsers := getUserMonthlyTrafficRanking()
 
 	return dto.Ok(map[string]interface{}{
 		"nodes":               map[string]int64{"total": totalNodes, "online": onlineNodes},
@@ -728,6 +716,137 @@ func getNodeTrafficRanking() []map[string]interface{} {
 			"gostFlow":  r.GostFlow,
 			"xrayFlow":  r.XrayFlow,
 			"totalFlow": r.TotalFlow,
+		})
+	}
+	return result
+}
+
+// getUserMonthlyTrafficRanking returns top 5 users by this month's traffic using delta computation.
+func getUserMonthlyTrafficRanking() []map[string]interface{} {
+	now := time.Now()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Unix()
+	cutoff := monthStart - 3600
+
+	// Build user name map
+	type userInfo struct {
+		ID   int64
+		User string
+	}
+	var users []userInfo
+	DB.Model(&model.User{}).Select("id, `user`").Where("role_id != 0").Find(&users)
+	userNameMap := make(map[int64]string)
+	for _, u := range users {
+		userNameMap[u.ID] = u.User
+	}
+
+	var records []model.StatisticsUserFlow
+	DB.Where("record_time >= ?", cutoff).Order("record_time ASC").Find(&records)
+
+	if len(records) == 0 {
+		return []map[string]interface{}{}
+	}
+
+	bucketSize := int64(3600)
+	type userBucketKey struct {
+		UserId int64
+		Bucket int64
+	}
+	type flowSnap struct {
+		GostFlow int64
+		XrayFlow int64
+	}
+	userBucketSnapshot := make(map[userBucketKey]flowSnap)
+	for _, r := range records {
+		key := userBucketKey{r.UserId, (r.RecordTime / bucketSize) * bucketSize}
+		userBucketSnapshot[key] = flowSnap{r.GostFlow, r.XrayFlow}
+	}
+
+	userIds := make(map[int64]bool)
+	allBuckets := make(map[int64]bool)
+	for k := range userBucketSnapshot {
+		userIds[k.UserId] = true
+		allBuckets[k.Bucket] = true
+	}
+	sortedBuckets := make([]int64, 0, len(allBuckets))
+	for b := range allBuckets {
+		sortedBuckets = append(sortedBuckets, b)
+	}
+	sort.Slice(sortedBuckets, func(i, j int) bool { return sortedBuckets[i] < sortedBuckets[j] })
+
+	type userFlow struct {
+		GostFlow int64
+		XrayFlow int64
+	}
+	userMonthly := make(map[int64]*userFlow)
+	for uid := range userIds {
+		var prevGost, prevXray int64
+		firstSeen := false
+		for _, bt := range sortedBuckets {
+			snap, ok := userBucketSnapshot[userBucketKey{uid, bt}]
+			if !ok {
+				continue
+			}
+			if !firstSeen {
+				prevGost = snap.GostFlow
+				prevXray = snap.XrayFlow
+				firstSeen = true
+				continue
+			}
+			if bt < monthStart {
+				prevGost = snap.GostFlow
+				prevXray = snap.XrayFlow
+				continue
+			}
+			gd := snap.GostFlow - prevGost
+			xd := snap.XrayFlow - prevXray
+			if gd < 0 {
+				gd = 0
+			}
+			if xd < 0 {
+				xd = 0
+			}
+			if userMonthly[uid] == nil {
+				userMonthly[uid] = &userFlow{}
+			}
+			userMonthly[uid].GostFlow += gd
+			userMonthly[uid].XrayFlow += xd
+			prevGost = snap.GostFlow
+			prevXray = snap.XrayFlow
+		}
+	}
+
+	type rankEntry struct {
+		Name      string
+		GostFlow  int64
+		XrayFlow  int64
+		TotalFlow int64
+	}
+	ranking := make([]rankEntry, 0, len(userMonthly))
+	for uid, uf := range userMonthly {
+		total := uf.GostFlow + uf.XrayFlow
+		if total <= 0 {
+			continue
+		}
+		ranking = append(ranking, rankEntry{
+			Name:      userNameMap[uid],
+			GostFlow:  uf.GostFlow,
+			XrayFlow:  uf.XrayFlow,
+			TotalFlow: total,
+		})
+	}
+	sort.Slice(ranking, func(i, j int) bool { return ranking[i].TotalFlow > ranking[j].TotalFlow })
+
+	if len(ranking) > 5 {
+		ranking = ranking[:5]
+	}
+
+	result := make([]map[string]interface{}, 0, len(ranking))
+	for _, r := range ranking {
+		result = append(result, map[string]interface{}{
+			"name":     r.Name,
+			"flow":     r.TotalFlow,
+			"gostFlow": r.GostFlow,
+			"vFlow":    r.XrayFlow,
 		})
 	}
 	return result
